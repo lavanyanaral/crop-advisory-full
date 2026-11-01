@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Crop Advisory System | फसल सलाहकार प्रणाली | पीक सल्लागार प्रणाली</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Tiro+Devanagari+Hindi:ital@0;1&family=Noto+Sans+Devanagari:wght@400;600;700&family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body class="lang-select-page">
+
+  <div class="bg-field"></div>
+  <div class="grain-overlay"></div>
+
+  <div class="lang-container">
+    <div class="logo-area">
+      <div class="logo-icon">🌾</div>
+      <h1 class="app-title">
+        <span class="title-en">Crop Advisory</span>
+        <span class="title-sub">Smart Farming for Small & Marginal Farmers</span>
+      </h1>
+    </div>
+
+    <div class="lang-card">
+      <p class="lang-prompt">Choose your language / अपनी भाषा चुनें / तुमची भाषा निवडा</p>
+
+      <div class="lang-options">
+        <button class="lang-btn" onclick="selectLanguage('en')">
+          <span class="lang-flag">🇬🇧</span>
+          <span class="lang-name">English</span>
+          <span class="lang-sub">Crop Advisory System</span>
+        </button>
+        <button class="lang-btn" onclick="selectLanguage('hi')">
+          <span class="lang-flag">🇮🇳</span>
+          <span class="lang-name">हिंदी</span>
+          <span class="lang-sub">फसल सलाहकार प्रणाली</span>
+        </button>
+        <button class="lang-btn" onclick="selectLanguage('mr')">
+          <span class="lang-flag">🏵️</span>
+          <span class="lang-name">मराठी</span>
+          <span class="lang-sub">पीक सल्लागार प्रणाली</span>
+        </button>
+      </div>
+    </div>
+
+    <p class="footer-note">Best for Small & Marginal Farmers • BEST System</p>
+  </div>
+
+  <script>
+    function selectLanguage(lang) {
+      localStorage.setItem('cropLang', lang);
+      window.location.href = 'pages/farmer-input.html';
+    }
+  </script>
+</body>
+</html>

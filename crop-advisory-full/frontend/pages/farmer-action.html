@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Farmer Action</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body class="flow-page">
+
+<div class="flow-header">
+  <button class="back-btn" onclick="history.back()">←</button>
+  <div class="header-title">
+    <div id="headerTitle">Farmer Action</div>
+    <div class="header-subtitle">Step 6 of 7</div>
+  </div>
+  <span class="lang-badge" id="langBadge">EN</span>
+</div>
+
+<div class="step-indicator" id="stepIndicator"></div>
+
+<div class="flow-content">
+
+  <!-- Illustration -->
+  <div class="action-illustration">
+    <div style="font-size:4rem;">👨‍🌾</div>
+    <div style="font-size:1rem; font-weight:700; margin-top:0.5rem;" id="step6Title">Farmer Takes Action</div>
+    <div style="font-size:0.8rem; opacity:0.85; margin-top:0.3rem;" id="step6Desc">Follow the advisory and take action on your farm</div>
+  </div>
+
+  <!-- Checklist -->
+  <div class="section-card">
+    <div class="card-title" id="checklistTitle" style="margin-bottom:1rem;">📋 Action Checklist</div>
+    <div id="actionList"></div>
+    <div id="allDoneMsg" style="display:none; text-align:center; font-size:1.2rem; padding:1rem; color:var(--green-dark); font-weight:700;"></div>
+  </div>
+
+  <!-- AI-generated custom actions -->
+  <div class="section-card">
+    <div class="card-title" style="margin-bottom:0.75rem;">🤖 AI-Specific Actions</div>
+    <div id="aiActions"></div>
+  </div>
+
+  <button class="btn btn-primary" id="nextBtn" onclick="goNext()">Next →</button>
+
+</div>
+
+<script src="../js/translations.js"></script>
+<script src="../js/api.js"></script>
+<script>
+const t = getT();
+const lang = getLang();
+const reco = JSON.parse(localStorage.getItem('aiRecommendations') || '{}');
+const farmer = JSON.parse(localStorage.getItem('farmerData') || '{}');
+
+document.getElementById('headerTitle').textContent = t.appTitle;
+document.getElementById('langBadge').textContent = lang.toUpperCase();
+document.getElementById('step6Title').textContent = t.step6Title;
+document.getElementById('step6Desc').textContent = t.step6Desc;
+document.getElementById('checklistTitle').textContent = '📋 ' + t.actionChecklist;
+document.getElementById('nextBtn').textContent = t.next;
+document.getElementById('allDoneMsg').textContent = t.allDone;
+
+// Step indicator
+const si = document.getElementById('stepIndicator');
+t.steps.forEach((s, i) => {
+  const dot = document.createElement('div');
+  dot.className = 'step-dot' + (i === 5 ? ' active' : i < 5 ? ' done' : '');
+  dot.innerHTML = `<div class="dot-circle">${i < 5 ? '✓' : i+1}</div><div class="step-dot-label">${s}</div>`;
+  si.appendChild(dot);
+});
+
+// Build checklist
+const actionList = document.getElementById('actionList');
+let checkedCount = 0;
+
+t.actions.forEach((action, i) => {
+  const div = document.createElement('div');
+  div.style.cssText = 'display:flex;align-items:center;gap:0.75rem;padding:0.75rem 0;border-bottom:1px solid var(--cream-dark);cursor:pointer;';
+  div.id = `action-${i}`;
+  div.innerHTML = `
+    <div id="check-${i}" style="width:26px;height:26px;border-radius:50%;border:2px solid #c5a97a;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.3s;font-size:0.75rem;">○</div>
+    <div style="font-family:'Noto Sans Devanagari','DM Sans',sans-serif;font-size:0.9rem;color:var(--text-dark);" id="actionText-${i}">${action}</div>
+  `;
+  div.onclick = () => toggleAction(i);
+  actionList.appendChild(div);
+});
+
+function toggleAction(i) {
+  const check = document.getElementById(`check-${i}`);
+  const text = document.getElementById(`actionText-${i}`);
+  if (check.style.background === 'var(--green-mid)') {
+    check.style.background = '';
+    check.style.borderColor = '#c5a97a';
+    check.textContent = '○';
+    text.style.textDecoration = '';
+    checkedCount--;
+  } else {
+    check.style.background = 'var(--green-mid)';
+    check.style.borderColor = 'var(--green-dark)';
+    check.style.color = 'white';
+    check.textContent = '✓';
+    text.style.textDecoration = 'line-through';
+    text.style.color = 'var(--text-light)';
+    checkedCount++;
+  }
+  if (checkedCount >= t.actions.length) {
+    document.getElementById('allDoneMsg').style.display = 'block';
+  } else {
+    document.getElementById('allDoneMsg').style.display = 'none';
+  }
+}
+
+// AI-specific actions based on recommendations
+const aiActionsData = [
+  { icon: '🌾', text: reco.crop ? `${lang === 'hi' ? 'इस मौसम में' : lang === 'mr' ? 'या हंगामात' : 'This season sow'}: ${reco.crop}` : '' },
+  { icon: '🪣', text: reco.fertilizer ? reco.fertilizer : '' },
+  { icon: '💧', text: reco.irrigation ? reco.irrigation : '' },
+  { icon: '🐛', text: reco.pest ? reco.pest : '' },
+];
+
+const aiDiv = document.getElementById('aiActions');
+aiActionsData.filter(a => a.text).forEach(a => {
+  const div = document.createElement('div');
+  div.className = 'alert alert-success';
+  div.style.marginBottom = '0.5rem';
+  div.innerHTML = `<span>${a.icon}</span><span style="font-family:'Noto Sans Devanagari','DM Sans',sans-serif;font-size:0.85rem;">${a.text}</span>`;
+  aiDiv.appendChild(div);
+});
+
+function goNext() {
+  window.location.href = 'feedback.html';
+}
+</script>
+</body>
+</html>

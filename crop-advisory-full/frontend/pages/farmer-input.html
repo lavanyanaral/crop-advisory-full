@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Farmer Input</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;600;700&family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body class="flow-page">
+<div class="flow-header">
+  <button class="back-btn" onclick="window.location.href='../index.html'">←</button>
+  <div class="header-title">
+    <div id="headerTitle">Crop Advisory System</div>
+    <div class="header-subtitle">Step 1 of 7</div>
+  </div>
+  <span class="lang-badge" onclick="changeLang()" id="langBadge">EN</span>
+</div>
+<div class="step-indicator" id="stepIndicator"></div>
+<div class="flow-content">
+  <div class="section-card orange-card">
+    <div class="card-icon">👨‍🌾</div>
+    <div class="card-title" id="step1Title">Farmer Inputs Data</div>
+    <div class="card-desc" id="step1Desc">Enter your farm details to get personalized advice</div>
+  </div>
+  <div class="section-card">
+    <div class="form-group">
+      <label class="form-label" id="lFarmerName">Farmer Name</label>
+      <input class="form-input" id="farmerName" type="text" />
+    </div>
+    <div class="form-group">
+      <label class="form-label" id="lLocation">Location / Village</label>
+      <input class="form-input" id="location" type="text" />
+    </div>
+    <div class="form-group">
+      <label class="form-label" id="lSoilType">Soil Type</label>
+      <select class="form-select" id="soilType"><option value="">-- Select --</option></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label" id="lLandSize">Land Size (acres)</label>
+      <input class="form-input" id="landSize" type="number" step="0.5" />
+    </div>
+    <div class="form-group">
+      <label class="form-label" id="lCurrentCrop">Current / Planned Crop</label>
+      <select class="form-select" id="currentCrop"><option value="">-- Select --</option></select>
+    </div>
+  </div>
+  <div class="section-card">
+    <div class="card-title" id="lUpload" style="margin-bottom:0.75rem">📷 Upload Crop / Soil Photos</div>
+    <div class="upload-area" onclick="document.getElementById('photoInput').click()">
+      <input type="file" id="photoInput" accept="image/*" multiple onchange="handlePhotoUpload(event)">
+      <div class="upload-icon">📸</div>
+      <div class="upload-text" id="uploadHint">Tap to upload photos</div>
+    </div>
+    <div class="upload-preview" id="previewArea"></div>
+  </div>
+  <div id="errorMsg" style="display:none;padding:0.75rem;background:#ffe0e0;color:#c00;border-radius:8px;margin-bottom:1rem;"></div>
+  <button class="btn btn-primary" id="nextBtn" onclick="goNext()">Next →</button>
+</div>
+<script src="../js/translations.js"></script>
+<script src="../js/api.js"></script>
+<script>
+const t = getT(); const lang = getLang();
+document.getElementById('headerTitle').textContent = t.appTitle;
+document.getElementById('langBadge').textContent = lang.toUpperCase();
+document.getElementById('step1Title').textContent = t.step1Title;
+document.getElementById('step1Desc').textContent = t.step1Desc;
+document.getElementById('lFarmerName').textContent = t.farmerName;
+document.getElementById('lLocation').textContent = t.location;
+document.getElementById('lSoilType').textContent = t.soilType;
+document.getElementById('lLandSize').textContent = t.landSize;
+document.getElementById('lCurrentCrop').textContent = t.currentCrop;
+document.getElementById('lUpload').textContent = '📷 ' + t.uploadCrop;
+document.getElementById('uploadHint').textContent = t.uploadHint;
+document.getElementById('nextBtn').textContent = t.nextBtn;
+document.getElementById('farmerName').placeholder = t.farmerNamePlaceholder;
+document.getElementById('location').placeholder = t.locationPlaceholder;
+document.getElementById('landSize').placeholder = t.landSizePlaceholder;
+t.soilTypes.forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; document.getElementById('soilType').appendChild(o); });
+t.crops.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; document.getElementById('currentCrop').appendChild(o); });
+const si = document.getElementById('stepIndicator');
+t.steps.forEach((s,i) => { const d = document.createElement('div'); d.className='step-dot'+(i===0?' active':''); d.innerHTML=`<div class="dot-circle">${i+1}</div><div class="step-dot-label">${s}</div>`; si.appendChild(d); });
+let selectedFiles = [];
+function handlePhotoUpload(e) {
+  selectedFiles = e.target.files;
+  const preview = document.getElementById('previewArea'); preview.innerHTML = '';
+  Array.from(selectedFiles).forEach(f => { const r = new FileReader(); r.onload = ev => { const img = document.createElement('img'); img.className='preview-img'; img.src=ev.target.result; preview.appendChild(img); }; r.readAsDataURL(f); });
+}
+async function goNext() {
+  const name = document.getElementById('farmerName').value.trim();
+  const loc = document.getElementById('location').value.trim();
+  const soil = document.getElementById('soilType').value;
+  const land = document.getElementById('landSize').value;
+  const crop = document.getElementById('currentCrop').value;
+  if (!name || !loc || !soil || !land || !crop) {
+    const em = document.getElementById('errorMsg');
+    em.textContent = lang==='mr'?'कृपया सर्व माहिती भरा.':lang==='hi'?'कृपया सभी जानकारी भरें।':'Please fill all fields.';
+    em.style.display='block'; return;
+  }
+  const btn = document.getElementById('nextBtn'); btn.disabled=true; btn.textContent='Saving...';
+  try {
+    await CropAPI.saveFarmer({name,location:loc,soil_type:soil,land_size:land,current_crop:crop,language:lang}, selectedFiles);
+    localStorage.setItem('farmerData', JSON.stringify({name,loc,soil,land,crop}));
+    window.location.href = 'weather.html';
+  } catch(e) {
+    const em=document.getElementById('errorMsg'); em.textContent='⚠️ '+e.message; em.style.display='block';
+    btn.disabled=false; btn.textContent=t.nextBtn;
+  }
+}
+function changeLang() { const langs=['en','hi','mr']; const next=langs[(langs.indexOf(getLang())+1)%3]; localStorage.setItem('cropLang',next); location.reload(); }
+</script>
+</body>
+</html>

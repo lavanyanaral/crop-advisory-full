@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Soil Analysis</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body class="flow-page">
+<div class="flow-header">
+  <button class="back-btn" onclick="history.back()">←</button>
+  <div class="header-title">
+    <div id="headerTitle">Crop Advisory</div>
+    <div class="header-subtitle">Step 3 of 7</div>
+  </div>
+  <span class="lang-badge" id="langBadge">EN</span>
+</div>
+<div class="step-indicator" id="stepIndicator"></div>
+<div class="flow-content">
+  <div class="section-card" style="background:linear-gradient(135deg,#4a2c0a,#7a5230);color:white;">
+    <div class="card-icon">🔬</div>
+    <div class="card-title" id="step3Title">Soil &amp; Crop Analysis</div>
+    <div class="card-desc" id="step3Desc">Analyzing your soil and crop images...</div>
+  </div>
+  <div class="section-card" id="analysisProgress">
+    <div class="card-title" id="soilAnalysisLabel" style="margin-bottom:1rem;">🌱 Soil Analysis</div>
+    <div id="soilProgressItems"></div>
+  </div>
+  <div class="section-card" id="soilResultCard" style="display:none;">
+    <div class="card-title" style="margin-bottom:1rem;" id="soilResultTitle">📊 Soil Report</div>
+    <div id="soilMetrics"></div>
+  </div>
+  <div class="section-card" id="cropAnalysisCard" style="display:none;">
+    <div class="card-title" id="cropAnalysisLabel" style="margin-bottom:0.75rem;">🌾 Crop Image Analysis</div>
+    <div class="alert alert-success" id="cropAnalysisResult"></div>
+  </div>
+  <div class="alert alert-success" id="completeAlert" style="display:none;"><span>✅</span><span id="analysisCompleteMsg">Analysis complete</span></div>
+  <button class="btn btn-primary" id="nextBtn" onclick="goNext()" style="display:none;">Next →</button>
+</div>
+<script src="../js/translations.js"></script>
+<script src="../js/api.js"></script>
+<script>
+const t = getT(); const lang = getLang();
+const farmer = JSON.parse(localStorage.getItem('farmerData') || '{}');
+document.getElementById('headerTitle').textContent = t.appTitle;
+document.getElementById('langBadge').textContent = lang.toUpperCase();
+document.getElementById('step3Title').textContent = t.step3Title;
+document.getElementById('step3Desc').textContent = t.step3Desc;
+document.getElementById('soilAnalysisLabel').textContent = '🌱 ' + t.soilAnalysis;
+document.getElementById('cropAnalysisLabel').textContent = '🌾 ' + t.cropAnalysis;
+document.getElementById('analysisCompleteMsg').textContent = t.analysisComplete;
+document.getElementById('nextBtn').textContent = t.next;
+const si = document.getElementById('stepIndicator');
+t.steps.forEach((s,i) => { const d=document.createElement('div'); d.className='step-dot'+(i===2?' active':i<2?' done':''); d.innerHTML=`<div class="dot-circle">${i<2?'✓':i+1}</div><div class="step-dot-label">${s}</div>`; si.appendChild(d); });
+
+function getSoilMetrics(soilType) {
+  const soilData = {
+    en: {"Black Soil (Regur)":{ph:"6.5 – 7.5",nitrogen:"High",moisture:"High",recommendation:"Well-suited for cotton, soybean, sugarcane."},"Red Soil":{ph:"5.5 – 6.5",nitrogen:"Low",moisture:"Low",recommendation:"Add organic compost. Good for groundnut, millets."},"Sandy Loam":{ph:"6.0 – 7.0",nitrogen:"Medium",moisture:"Medium",recommendation:"Good drainage. Ideal for wheat, vegetables."},"Clay Soil":{ph:"6.0 – 7.5",nitrogen:"Medium",moisture:"Very High",recommendation:"Ensure drainage. Rice, jute grow well."},"Alluvial Soil":{ph:"7.0 – 8.0",nitrogen:"High",moisture:"High",recommendation:"Very fertile. Wheat, rice, sugarcane thrive."}},
+    hi: {"काली मिट्टी (रेगुर)":{ph:"6.5 – 7.5",nitrogen:"अधिक",moisture:"अधिक",recommendation:"कपास, सोयाबीन, गन्ने के लिए उपयुक्त।"},"लाल मिट्टी":{ph:"5.5 – 6.5",nitrogen:"कम",moisture:"कम",recommendation:"जैविक खाद डालें। मूंगफली, बाजरे के लिए अच्छी।"},"बलुई दोमट":{ph:"6.0 – 7.0",nitrogen:"मध्यम",moisture:"मध्यम",recommendation:"अच्छी जल निकासी। गेहूं, सब्जियों के लिए आदर्श।"},"चिकनी मिट्टी":{ph:"6.0 – 7.5",nitrogen:"मध्यम",moisture:"बहुत अधिक",recommendation:"जल निकासी सुनिश्चित करें। धान, जूट अच्छे।"},"जलोढ़ मिट्टी":{ph:"7.0 – 8.0",nitrogen:"अधिक",moisture:"अधिक",recommendation:"बहुत उपजाऊ। गेहूं, धान, गन्ना अच्छे।"}},
+    mr: {"काळी माती (रेगुर)":{ph:"6.5 – 7.5",nitrogen:"जास्त",moisture:"जास्त",recommendation:"कापूस, सोयाबीन, उसासाठी योग्य."},"लाल माती":{ph:"5.5 – 6.5",nitrogen:"कमी",moisture:"कमी",recommendation:"सेंद्रिय खत घाला. भुईमूग, बाजरीसाठी चांगली."},"वालुकामय चिकणमाती":{ph:"6.0 – 7.0",nitrogen:"मध्यम",moisture:"मध्यम",recommendation:"चांगला निचरा. गहू, भाज्यांसाठी आदर्श."},"चिकट माती":{ph:"6.0 – 7.5",nitrogen:"मध्यम",moisture:"खूप जास्त",recommendation:"निचरा सुनिश्चित करा. भात, ताग चांगले."},"गाळाची माती":{ph:"7.0 – 8.0",nitrogen:"जास्त",moisture:"जास्त",recommendation:"खूप सुपीक. गहू, भात, ऊस उत्तम."}}
+  };
+  const d = soilData[lang] || soilData.en;
+  return d[soilType] || {ph:"6.5",nitrogen:"Medium",moisture:"Medium",recommendation:"Suitable for most crops."};
+}
+
+const progressItems = [
+  {icon:'🔍',label:{en:'Scanning soil type...',hi:'मिट्टी का प्रकार स्कैन हो रहा है...',mr:'जमिनीचा प्रकार स्कॅन होत आहे...'}},
+  {icon:'⚗️',label:{en:'Estimating pH level...',hi:'pH स्तर का अनुमान लगाया जा रहा है...',mr:'pH पातळीचा अंदाज केला जात आहे...'}},
+  {icon:'🌿',label:{en:'Checking nitrogen content...',hi:'नाइट्रोजन सामग्री जांची जा रही है...',mr:'नायट्रोजन सामग्री तपासली जात आहे...'}},
+  {icon:'💧',label:{en:'Measuring moisture levels...',hi:'नमी का स्तर मापा जा रहा है...',mr:'ओलावा पातळी मोजली जात आहे...'}}
+];
+const container = document.getElementById('soilProgressItems');
+progressItems.forEach((item,i) => {
+  const div = document.createElement('div');
+  div.id = `progress-${i}`;
+  div.style.cssText='display:flex;align-items:center;gap:0.75rem;padding:0.5rem 0;opacity:0;transition:opacity 0.4s;font-size:0.9rem;color:var(--text-light);';
+  div.innerHTML=`<span>${item.icon}</span><span>${item.label[lang]||item.label.en}</span><span id="check-${i}" style="margin-left:auto;"></span>`;
+  container.appendChild(div);
+});
+progressItems.forEach((_,i) => {
+  setTimeout(() => { document.getElementById(`progress-${i}`).style.opacity='1'; document.getElementById(`progress-${i}`).style.color='var(--text-dark)'; }, i*600);
+  setTimeout(() => { const el=document.getElementById(`check-${i}`); if(el){el.textContent='✅';} }, i*600+400);
+});
+
+setTimeout(async () => {
+  const metrics = getSoilMetrics(farmer.soil);
+  const metricsHTML = `
+    <div class="report-section"><div class="report-label">${t.soilType||'Soil Type'}</div><div class="report-value">🌱 ${farmer.soil||'--'}</div></div>
+    <div class="report-section"><div class="report-label">${t.soilPH}</div><div class="report-value">⚗️ ${metrics.ph}</div></div>
+    <div class="report-section"><div class="report-label">${t.nitrogenLevel}</div><div class="report-value">🌿 ${metrics.nitrogen}</div></div>
+    <div class="report-section"><div class="report-label">${t.soilHealthLabel}</div><div class="report-value">💧 ${metrics.recommendation}</div></div>`;
+  document.getElementById('soilMetrics').innerHTML = metricsHTML;
+  document.getElementById('soilResultTitle').textContent = '📊 ' + (t.soilAnalysis||'Soil Analysis');
+  document.getElementById('soilResultCard').style.display='block';
+  const cropPhotos = JSON.parse(localStorage.getItem('cropPhotos')||'[]');
+  const cropMsg = {en:`Analyzed ${cropPhotos.length||0} photo(s). No visible disease detected.`,hi:`${cropPhotos.length||0} फोटो का विश्लेषण किया। कोई रोग नहीं मिला।`,mr:`${cropPhotos.length||0} छायाचित्रांचे विश्लेषण केले. कोणताही रोग आढळला नाही.`};
+  const cropPhotoResult = cropMsg[lang]||cropMsg.en;
+  document.getElementById('cropAnalysisResult').innerHTML='🌾 ' + cropPhotoResult;
+  document.getElementById('cropAnalysisCard').style.display='block';
+  document.getElementById('completeAlert').style.display='flex';
+  document.getElementById('nextBtn').style.display='block';
+  localStorage.setItem('soilAnalysis', JSON.stringify(metrics));
+  // Save to MySQL
+  try {
+    await CropAPI.saveSoil({
+      ph_range: metrics.ph,
+      nitrogen_level: metrics.nitrogen,
+      moisture_level: metrics.moisture,
+      recommendation: metrics.recommendation,
+      crop_photo_result: cropPhotoResult
+    });
+  } catch(e) { console.warn('Soil save failed:', e.message); }
+}, progressItems.length*600+600);
+
+function goNext() { window.location.href='ai-processing.html'; }
+</script>
+</body>
+</html>

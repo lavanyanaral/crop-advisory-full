@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Advisory Report</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body class="flow-page">
+
+<div class="flow-header">
+  <button class="back-btn" onclick="history.back()">←</button>
+  <div class="header-title">
+    <div id="headerTitle">Advisory Report</div>
+    <div class="header-subtitle">Step 5 of 7</div>
+  </div>
+  <span class="lang-badge" id="langBadge">EN</span>
+</div>
+
+<div class="step-indicator" id="stepIndicator"></div>
+
+<div class="flow-content">
+
+  <div class="section-card" style="background:linear-gradient(135deg,#d4a020,#b8791f);color:white;">
+    <div class="card-icon">📋</div>
+    <div class="card-title" id="step5Title">Generate Advisory Report</div>
+    <div class="card-desc" id="step5Desc">Your personalized crop advisory report is ready</div>
+  </div>
+
+  <!-- Report Card -->
+  <div class="section-card" id="reportCard">
+    <div style="display:flex; align-items:center; gap:0.75rem; padding-bottom:0.75rem; border-bottom:2px solid var(--cream-dark); margin-bottom:1rem;">
+      <div style="font-size:2rem">📜</div>
+      <div>
+        <div style="font-weight:700; font-size:1rem;" id="reportReadyLabel">Advisory Report Ready</div>
+        <div style="font-size:0.75rem; color:var(--text-light);" id="reportDateLabel"></div>
+      </div>
+      <div style="margin-left:auto; background:var(--green-mid); color:white; padding:0.2rem 0.7rem; border-radius:12px; font-size:0.7rem;">BEST</div>
+    </div>
+
+    <div id="reportBody"></div>
+  </div>
+
+  <!-- Delivery -->
+  <div class="section-card">
+    <div class="card-title" id="deliverLabel" style="margin-bottom:0.75rem;">📤 Send Report To Farmer</div>
+    <div class="delivery-methods" id="deliveryMethods">
+      <div class="delivery-chip selected" data-method="app" onclick="toggleDelivery(this)">📱 Mobile App</div>
+      <div class="delivery-chip" data-method="sms" onclick="toggleDelivery(this)">💬 SMS</div>
+      <div class="delivery-chip" data-method="pdf" onclick="toggleDelivery(this)">📄 PDF</div>
+    </div>
+  </div>
+
+  <!-- Action buttons -->
+  <button class="btn btn-primary" id="downloadBtn" onclick="downloadReport()">📄 Download PDF Report</button>
+  <button class="btn btn-secondary" id="smsBtn" onclick="sendSMS()">💬 Send via SMS</button>
+  <button class="btn btn-primary" id="nextBtn" onclick="goNext()" style="margin-top:0.5rem;">Next →</button>
+
+</div>
+
+<script src="../js/translations.js"></script>
+<script src="../js/api.js"></script>
+<script>
+const t = getT();
+const lang = getLang();
+const farmer = JSON.parse(localStorage.getItem('farmerData') || '{}');
+const weather = JSON.parse(localStorage.getItem('weatherData') || '{}');
+const reco = JSON.parse(localStorage.getItem('aiRecommendations') || '{}');
+const soil = JSON.parse(localStorage.getItem('soilAnalysis') || '{}');
+
+document.getElementById('headerTitle').textContent = t.appTitle;
+document.getElementById('langBadge').textContent = lang.toUpperCase();
+document.getElementById('step5Title').textContent = t.step5Title;
+document.getElementById('step5Desc').textContent = t.step5Desc;
+document.getElementById('reportReadyLabel').textContent = t.reportReady;
+document.getElementById('deliverLabel').textContent = '📤 ' + t.deliverVia;
+document.getElementById('downloadBtn').textContent = '📄 ' + t.downloadPDF;
+document.getElementById('smsBtn').textContent = '💬 ' + t.sendSMS;
+document.getElementById('nextBtn').textContent = t.next;
+document.getElementById('reportDateLabel').textContent = new Date().toLocaleDateString(
+  lang === 'hi' ? 'hi-IN' : lang === 'mr' ? 'mr-IN' : 'en-IN',
+  { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }
+);
+
+// Step indicator
+const si = document.getElementById('stepIndicator');
+t.steps.forEach((s, i) => {
+  const dot = document.createElement('div');
+  dot.className = 'step-dot' + (i === 4 ? ' active' : i < 4 ? ' done' : '');
+  dot.innerHTML = `<div class="dot-circle">${i < 4 ? '✓' : i+1}</div><div class="step-dot-label">${s}</div>`;
+  si.appendChild(dot);
+});
+
+// Build report
+const labels = {
+  en: { farmer: 'Farmer Name', location: 'Location', soil: 'Soil Type', land: 'Land Size', crop: 'Crop', temp: 'Temperature', rain: 'Rainfall', cropReco: 'Crop Recommendation', fert: 'Fertilizer Advice', pest: 'Pest & Disease', irri: 'Irrigation' },
+  hi: { farmer: 'किसान का नाम', location: 'स्थान', soil: 'मिट्टी का प्रकार', land: 'भूमि आकार', crop: 'फसल', temp: 'तापमान', rain: 'वर्षा', cropReco: 'फसल सिफारिश', fert: 'उर्वरक सलाह', pest: 'कीट एवं रोग', irri: 'सिंचाई' },
+  mr: { farmer: 'शेतकऱ्याचे नाव', location: 'स्थान', soil: 'जमिनीचा प्रकार', land: 'जमिनीचा आकार', crop: 'पीक', temp: 'तापमान', rain: 'पाऊस', cropReco: 'पीक शिफारस', fert: 'खत सल्ला', pest: 'कीड आणि रोग', irri: 'सिंचन' }
+};
+const L = labels[lang] || labels.en;
+
+const items = [
+  { label: L.farmer, value: '👤 ' + farmer.name },
+  { label: L.location, value: '📍 ' + farmer.loc },
+  { label: L.soil, value: '🌱 ' + farmer.soil },
+  { label: L.land, value: '📐 ' + farmer.land + ' acres' },
+  { label: L.crop, value: '🌾 ' + farmer.crop },
+  { label: L.temp, value: '🌡️ ' + (weather.temp || '--') + '°C' },
+  { label: L.rain, value: '🌧️ ' + (weather.rain || '--') + ' mm' },
+  { label: L.cropReco, value: '✅ ' + (reco.crop || '--') },
+  { label: L.fert, value: '🪣 ' + (reco.fertilizer || '--') },
+  { label: L.pest, value: '🐛 ' + (reco.pest || '--') },
+  { label: L.irri, value: '💧 ' + (reco.irrigation || '--') },
+];
+
+const reportBody = document.getElementById('reportBody');
+items.forEach(item => {
+  const div = document.createElement('div');
+  div.className = 'report-section';
+  div.innerHTML = `<div class="report-label">${item.label}</div><div class="report-value">${item.value}</div>`;
+  reportBody.appendChild(div);
+});
+
+function toggleDelivery(el) {
+  document.querySelectorAll('.delivery-chip').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function downloadReport() {
+  // Create printable content
+  const content = items.map(i => `${i.label}: ${i.value}`).join('\n');
+  const blob = new Blob([t.appTitle + '\n' + '='.repeat(40) + '\n' + content + '\n\n' + new Date().toLocaleDateString()], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'crop-advisory-report.txt';
+  a.click();
+  URL.revokeObjectURL(url);
+  
+  const msg = { en: '✅ Report downloaded!', hi: '✅ रिपोर्ट डाउनलोड हुई!', mr: '✅ अहवाल डाउनलोड झाला!' };
+  alert(msg[lang] || msg.en);
+}
+
+function sendSMS() {
+  const msg = { en: '✅ SMS sent to farmer!', hi: '✅ किसान को SMS भेजा गया!', mr: '✅ शेतकऱ्याला SMS पाठवला!' };
+  alert(msg[lang] || msg.en);
+}
+
+function goNext() {
+  window.location.href = 'farmer-action.html';
+}
+</script>
+</body>
+</html>

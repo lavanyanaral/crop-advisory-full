@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Processing</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body class="flow-page">
+<div class="flow-header">
+  <button class="back-btn" onclick="history.back()">←</button>
+  <div class="header-title">
+    <div id="headerTitle">Crop Advisory</div>
+    <div class="header-subtitle">Step 4 of 7</div>
+  </div>
+  <span class="lang-badge" id="langBadge">EN</span>
+</div>
+<div class="step-indicator" id="stepIndicator"></div>
+<div class="flow-content">
+  <div class="ai-card" id="aiCard">
+    <div class="ai-brain">🧠</div>
+    <div class="ai-label" id="aiLabel">AI / Decision Processing</div>
+    <div style="font-size:0.8rem;opacity:0.8;margin-top:0.3rem;" id="aiDesc">Generating personalized recommendations...</div>
+    <div class="loader-dots" style="margin-top:1rem;"><div class="loader-dot"></div><div class="loader-dot"></div><div class="loader-dot"></div></div>
+    <div class="loading-bar" style="margin-top:1rem;background:rgba(255,255,255,0.2);"><div class="loading-bar-inner"></div></div>
+  </div>
+  <div id="recoSection" style="display:none;animation:fadeUp 0.6s ease;">
+    <div class="reco-grid">
+      <div class="reco-card crop-reco"><div class="reco-icon">🌱</div><div class="reco-title" id="cropRecoTitle">Crop Recommendation</div><div class="reco-value" id="cropRecoValue">--</div></div>
+      <div class="reco-card fert-reco"><div class="reco-icon">🪣</div><div class="reco-title" id="fertTitle">Fertilizer</div><div class="reco-value" id="fertValue">--</div></div>
+      <div class="reco-card pest-reco"><div class="reco-icon">🐛</div><div class="reco-title" id="pestTitle">Pest &amp; Disease</div><div class="reco-value" id="pestValue">--</div></div>
+      <div class="reco-card irri-reco"><div class="reco-icon">💧</div><div class="reco-title" id="irriTitle">Irrigation</div><div class="reco-value" id="irriValue">--</div></div>
+    </div>
+  </div>
+  <button class="btn btn-primary" id="nextBtn" onclick="goNext()" style="display:none">Next →</button>
+</div>
+<script src="../js/translations.js"></script>
+<script src="../js/api.js"></script>
+<script>
+const t = getT(); const lang = getLang();
+const farmer = JSON.parse(localStorage.getItem('farmerData') || '{}');
+const weather = JSON.parse(localStorage.getItem('weatherData') || '{}');
+document.getElementById('headerTitle').textContent = t.appTitle;
+document.getElementById('langBadge').textContent = lang.toUpperCase();
+document.getElementById('aiLabel').textContent = t.step4Title;
+document.getElementById('aiDesc').textContent = t.step4Desc;
+document.getElementById('cropRecoTitle').textContent = t.cropRecoTitle;
+document.getElementById('fertTitle').textContent = t.fertiliserTitle;
+document.getElementById('pestTitle').textContent = t.pestTitle;
+document.getElementById('irriTitle').textContent = t.irrigationTitle;
+document.getElementById('nextBtn').textContent = t.next;
+const si = document.getElementById('stepIndicator');
+t.steps.forEach((s,i) => { const d=document.createElement('div'); d.className='step-dot'+(i===3?' active':i<3?' done':''); d.innerHTML=`<div class="dot-circle">${i<3?'✓':i+1}</div><div class="step-dot-label">${s}</div>`; si.appendChild(d); });
+
+function getCropReco(soil) {
+  const map = {
+    en: {'Black Soil (Regur)':'Cotton, Soybean, Sugarcane','Red Soil':'Groundnut, Millets, Pulses','Sandy Loam':'Wheat, Vegetables','Clay Soil':'Rice, Jute','Alluvial Soil':'Wheat, Rice, Sugarcane'},
+    hi: {'काली मिट्टी (रेगुर)':'कपास, सोयाबीन, गन्ना','लाल मिट्टी':'मूंगफली, बाजरा, दालें','बलुई दोमट':'गेहूं, सब्जियां','चिकनी मिट्टी':'धान, जूट','जलोढ़ मिट्टी':'गेहूं, धान, गन्ना'},
+    mr: {'काळी माती (रेगुर)':'कापूस, सोयाबीन, ऊस','लाल माती':'भुईमूग, बाजरी, कडधान्य','वालुकामय चिकणमाती':'गहू, भाज्या','चिकट माती':'भात, ताग','गाळाची माती':'गहू, भात, ऊस'}
+  };
+  const d = map[lang] || map.en;
+  return d[soil] || (lang==='hi'?'मौसम के अनुसार फसल':lang==='mr'?'हंगामानुसार पीक':'Season-appropriate crop');
+}
+
+const recommendations = {
+  crop: getCropReco(farmer.soil),
+  fertilizer: {en:'NPK 10-26-26 @ 50 kg/acre. Apply Urea 30 days after sowing.',hi:'NPK 10-26-26 @ 50 किग्रा/एकड़। बुवाई के 30 दिन बाद यूरिया डालें।',mr:'NPK 10-26-26 @ 50 किलो/एकर. पेरणीनंतर 30 दिवसांनी युरिया द्या.'}[lang]||'NPK 10-26-26 @ 50 kg/acre.',
+  pest: (weather.humidity > 65 ? {en:'High risk of fungal blight. Apply Mancozeb spray.',hi:'फंगल ब्लाइट का खतरा। Mancozeb स्प्रे करें।',mr:'बुरशीजन्य करपाचा धोका. Mancozeb फवारणी करा.'}:{en:'Low pest risk currently. Monitor weekly.',hi:'अभी कीट का खतरा कम। साप्ताहिक निगरानी करें।',mr:'सध्या कीडींचा धोका कमी. साप्ताहिक निरीक्षण करा.'})[lang]||'Monitor weekly.',
+  irrigation: (weather.rain < 20 ? {en:'Irrigation needed every 5–7 days. Drip irrigation recommended.',hi:'हर 5–7 दिनों में सिंचाई जरूरी। ड्रिप सिंचाई की सलाह।',mr:'दर 5–7 दिवसांनी सिंचन आवश्यक. ठिबक सिंचनाची शिफारस.'}:{en:'Natural rainfall sufficient.',hi:'प्राकृतिक वर्षा पर्याप्त।',mr:'नैसर्गिक पाऊस पुरेसा.'})[lang]||'Natural rainfall sufficient.'
+};
+
+setTimeout(async () => {
+  document.getElementById('aiCard').style.opacity='0.6';
+  document.getElementById('recoSection').style.display='block';
+  document.getElementById('nextBtn').style.display='block';
+  document.getElementById('cropRecoValue').textContent = recommendations.crop;
+  document.getElementById('fertValue').textContent = recommendations.fertilizer;
+  document.getElementById('pestValue').textContent = recommendations.pest;
+  document.getElementById('irriValue').textContent = recommendations.irrigation;
+  localStorage.setItem('aiRecommendations', JSON.stringify(recommendations));
+  // Save to MySQL
+  try {
+    await CropAPI.saveRecommendations({
+      crop_recommendation: recommendations.crop,
+      fertilizer_advice: recommendations.fertilizer,
+      pest_disease_advice: recommendations.pest,
+      irrigation_advice: recommendations.irrigation
+    });
+  } catch(e) { console.warn('Recommendations save failed:', e.message); }
+}, 3000);
+
+function goNext() { window.location.href = 'report.html'; }
+</script>
+</body>
+</html>

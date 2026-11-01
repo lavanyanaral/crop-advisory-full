@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Weather Data</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body class="flow-page">
+<div class="flow-header">
+  <button class="back-btn" onclick="history.back()">←</button>
+  <div class="header-title">
+    <div id="headerTitle">Crop Advisory</div>
+    <div class="header-subtitle">Step 2 of 7</div>
+  </div>
+  <span class="lang-badge" id="langBadge">EN</span>
+</div>
+<div class="step-indicator" id="stepIndicator"></div>
+<div class="flow-content">
+  <div class="section-card blue-card">
+    <div class="card-icon">🌤️</div>
+    <div class="card-title" id="step2Title">Weather Data Fetch</div>
+    <div class="card-desc" id="step2Desc">Fetching real-time weather for your location...</div>
+  </div>
+  <div class="section-card" id="loadingCard">
+    <div style="text-align:center;padding:1rem;">
+      <div style="font-size:3rem">🌦️</div>
+      <div class="loader-dots"><div class="loader-dot"></div><div class="loader-dot"></div><div class="loader-dot"></div></div>
+      <div style="margin-top:0.75rem;color:var(--text-light);font-size:0.85rem" id="loadingText">Fetching weather data...</div>
+    </div>
+    <div class="loading-bar"><div class="loading-bar-inner"></div></div>
+  </div>
+  <div class="section-card" id="weatherCard" style="display:none">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;">
+      <div class="card-title" id="locationLabel">📍 Location</div>
+      <div style="font-size:0.75rem;color:var(--text-light);background:var(--cream-dark);padding:0.2rem 0.6rem;border-radius:12px;" id="dateLabel"></div>
+    </div>
+    <div class="weather-grid">
+      <div class="weather-item" style="background:#fff3e0;border-radius:12px;">
+        <div class="weather-icon">🌡️</div>
+        <div class="weather-label" id="tempLabel">Temperature</div>
+        <div class="weather-value" id="tempValue">--°C</div>
+      </div>
+      <div class="weather-item" style="background:#e3f2fd;border-radius:12px;">
+        <div class="weather-icon">🌧️</div>
+        <div class="weather-label" id="rainLabel">Rainfall</div>
+        <div class="weather-value" id="rainValue">-- mm</div>
+      </div>
+      <div class="weather-item" style="background:#f3e5f5;border-radius:12px;">
+        <div class="weather-icon">💧</div>
+        <div class="weather-label" id="humidLabel">Humidity</div>
+        <div class="weather-value" id="humidValue">--%</div>
+      </div>
+    </div>
+    <div style="margin-top:1rem;padding:0.75rem;background:#f0f8e8;border-radius:8px;font-size:0.8rem;color:#2d6a2d;">
+      <strong>🌾 Crop Impact: </strong><span id="cropImpact">Moderate rainfall expected — good for sowing.</span>
+    </div>
+  </div>
+  <div class="alert alert-success" id="successAlert" style="display:none">
+    <span>✅</span><span id="weatherFetchedMsg">Weather data loaded successfully</span>
+  </div>
+  <button class="btn btn-primary" id="nextBtn" onclick="goNext()" style="display:none">Next →</button>
+</div>
+<script src="../js/translations.js"></script>
+<script src="../js/api.js"></script>
+<script>
+const t = getT(); const lang = getLang();
+const farmer = JSON.parse(localStorage.getItem('farmerData') || '{}');
+document.getElementById('headerTitle').textContent = t.appTitle;
+document.getElementById('langBadge').textContent = lang.toUpperCase();
+document.getElementById('step2Title').textContent = t.step2Title;
+document.getElementById('step2Desc').textContent = t.step2Desc;
+document.getElementById('tempLabel').textContent = t.temperature;
+document.getElementById('rainLabel').textContent = t.rainfall;
+document.getElementById('humidLabel').textContent = t.humidity;
+document.getElementById('weatherFetchedMsg').textContent = t.weatherFetched;
+document.getElementById('loadingText').textContent = t.loading + ' ' + (farmer.loc || '');
+document.getElementById('nextBtn').textContent = t.next;
+const si = document.getElementById('stepIndicator');
+t.steps.forEach((s,i) => { const d=document.createElement('div'); d.className='step-dot'+(i===1?' active':i<1?' done':''); d.innerHTML=`<div class="dot-circle">${i<1?'✓':i+1}</div><div class="step-dot-label">${s}</div>`; si.appendChild(d); });
+
+function getSimulatedWeather(location) {
+  const hash = [...(location||'default')].reduce((a,c)=>a+c.charCodeAt(0),0);
+  return { temp: 22+(hash%16), rain: 5+(hash%40), humidity: 45+(hash%40) };
+}
+const cropImpacts = {
+  en: ["Moderate rainfall expected — good conditions for sowing.","High humidity — watch for fungal diseases.","Low rainfall — consider irrigation this week."],
+  hi: ["मध्यम वर्षा — बुवाई के लिए अच्छी स्थिति।","अधिक आर्द्रता — कवक रोगों पर ध्यान दें।","कम वर्षा — सिंचाई पर विचार करें।"],
+  mr: ["मध्यम पाऊस — पेरणीसाठी चांगली परिस्थिती.","जास्त आर्द्रता — बुरशीजन्य रोगांवर लक्ष ठेवा.","कमी पाऊस — सिंचनाचा विचार करा."]
+};
+
+setTimeout(async () => {
+  const weather = getSimulatedWeather(farmer.loc);
+  document.getElementById('loadingCard').style.display='none';
+  document.getElementById('weatherCard').style.display='block';
+  document.getElementById('successAlert').style.display='flex';
+  document.getElementById('nextBtn').style.display='block';
+  document.getElementById('locationLabel').textContent = '📍 ' + (farmer.loc || 'Location');
+  document.getElementById('dateLabel').textContent = new Date().toLocaleDateString(lang==='hi'?'hi-IN':lang==='mr'?'mr-IN':'en-IN',{day:'numeric',month:'short',year:'numeric'});
+  document.getElementById('tempValue').textContent = weather.temp + '°C';
+  document.getElementById('rainValue').textContent = weather.rain + ' mm';
+  document.getElementById('humidValue').textContent = weather.humidity + '%';
+  const impacts = cropImpacts[lang] || cropImpacts.en;
+  const hash = [...(farmer.loc||'x')].reduce((a,c)=>a+c.charCodeAt(0),0);
+  const impactText = impacts[hash % impacts.length];
+  document.getElementById('cropImpact').textContent = impactText;
+  localStorage.setItem('weatherData', JSON.stringify(weather));
+  // Save to MySQL
+  try {
+    await CropAPI.saveWeather({
+      temperature: weather.temp,
+      rainfall: weather.rain,
+      humidity: weather.humidity,
+      crop_impact: impactText
+    });
+  } catch(e) { console.warn('Weather save failed:', e.message); }
+}, 2800);
+
+function goNext() { window.location.href = 'soil-analysis.html'; }
+</script>
+</body>
+</html>
